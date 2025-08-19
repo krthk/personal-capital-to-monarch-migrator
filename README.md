@@ -1,6 +1,17 @@
 # Personal Capital to Monarch Money Migration Tool
 
-A comprehensive Python script that converts Personal Capital CSV transaction exports to the format required by Monarch Money, with complete category mapping support and flexible configuration options.
+A comprehensive Python script that converts Personal Capital CSV transaction exports to the format required by Monarch Money, with category mapping support and flexible configuration options.
+
+## ⚠️ Important Disclaimer
+
+**FOR PERSONAL USE ONLY:** This tool is provided for personal, non-commercial use in migrating your own financial data from Personal Capital to Monarch Money. 
+
+**LIMITATION OF LIABILITY:** The author(s) of this tool are not liable for any data loss, corruption, or damage that may occur during the migration process. You are solely responsible for:
+- Backing up your original data before migration
+- Verifying the accuracy of converted transactions
+- Any consequences resulting from the use of this tool
+
+**USE AT YOUR OWN RISK:** By using this software, you acknowledge that financial data migration carries inherent risks and you accept full responsibility for any outcomes. Always verify your data before importing into Monarch Money.
 
 ## 🚀 Quick Start
 
@@ -8,10 +19,25 @@ A comprehensive Python script that converts Personal Capital CSV transaction exp
    ```bash
    pip install PyYAML
    ```
+   
+   > **Note:** Only PyYAML is required for basic usage. The `requirements-dev.txt` file contains additional development dependencies (testing, code quality tools) that are only needed if you plan to modify or contribute to the code.
 
 2. **Prepare your data:**
-   - Export your Personal Capital transactions as CSV files
-   - Place them in the `input/` directory (or specify custom directory with `-i`)
+   
+   **Export from Personal Capital:**
+   - Log into your Personal Capital account
+   - Navigate to the account you want to export
+   - Look for export or download options (usually in account settings or transaction view)
+   - Download transactions as CSV format
+   
+   > ⚠️ **Note:** Personal Capital's interface may change over time. If you cannot locate the export options as described, check their current help documentation or contact their support.
+   
+   ![Personal Capital CSV Export](pc.png)
+   *Personal Capital transaction view showing the CSV export button (highlighted with arrow)*
+   
+   **Organize your files:**
+   - Place the downloaded CSV files in the `input/` directory (or specify custom directory with `-i`)
+   - You can export multiple accounts - the script will process all CSV files in the directory
 
 3. **Run the migration:**
    ```bash
@@ -19,26 +45,27 @@ A comprehensive Python script that converts Personal Capital CSV transaction exp
    ```
 
 4. **Import to Monarch:**
+   
+   **Locate your converted files:**
    - Find converted files in the `output/` directory
-   - In Monarch Money, go to each account → Edit → Upload transactions → Upload CSV
+   - Each file will be named `[original-filename]-monarch.csv`
+   
+   **Upload to Monarch Money:**
+   - Log into your Monarch Money account
+   - Navigate to the account you want to import to
+   - Go to account details → Edit → Upload transactions → Upload CSV
    - Select the corresponding `*-monarch.csv` file for each account
-
-## 📁 Project Structure
-
-```
-pc-to-monarch-migration/
-├── README.md                    # This file - user documentation
-├── migrate_pc_to_monarch.py     # Main migration script
-├── config.yaml                  # Category mapping configuration
-├── requirements-dev.txt         # Development dependencies
-├── tests/                       # Test suite
-│   ├── test_migrate_pc_to_monarch.py    # Unit tests
-│   ├── test_main_integration.py         # Integration tests
-│   └── test_data/              # Test data files
-├── input/                       # Default input directory (your PC CSV files)
-├── output/                      # Default output directory (converted files)
-└── archive/                     # Your archived transaction files
-```
+   - Review and confirm the import
+   
+   > ⚠️ **Note:** Monarch Money's interface may change over time. If you cannot locate the upload options as described, check their current help documentation or contact their support.
+   
+   ![Monarch Money CSV Upload](monarch.png)
+   *Monarch Money account edit menu showing "Upload transactions" option (highlighted with arrow)*
+   
+   **Verify your data:**
+   - Check that all transactions imported correctly
+   - Verify account balances match your expectations
+   - Review category assignments and adjust if needed
 
 ## 🔧 Command-Line Options
 
@@ -111,10 +138,10 @@ The script converts all transactions to Monarch's required 8-column format:
 ## ⚙️ Category Mapping Configuration
 
 ### Complete Coverage
-The included `config.yaml` provides mappings for **all 73 official Personal Capital categories**:
-- **13 Income categories** (Consulting, Paychecks/Salary, etc.)
-- **42 Expense categories** (Gasoline/Fuel, Healthcare/Medical, etc.)  
-- **18 Other categories** (Transfers, Balance Adjustments, etc.)
+The included `config.yaml` provides sensible mappings for **many common Personal Capital categories**:
+- **Income categories** (Consulting, Paychecks/Salary, etc.)
+- **Expense categories** (Gasoline/Fuel, Healthcare/Medical, etc.)  
+- **Other categories** (Transfers, Balance Adjustments, etc.)
 
 ### Configuration Structure
 ```yaml
@@ -123,12 +150,10 @@ category_mappings:
   "Gasoline/Fuel": "Gas"
   "Healthcare/Medical": "Medical"
   "Credit Card Payments": "Credit Card Payment"
-  # ... 200+ mappings
+  # ... 170+ mappings
   
 advanced:
-  preserve_unmapped_categories: true
   case_sensitive_matching: false
-  show_remapping_stats: true
 ```
 
 ### Customization
@@ -137,9 +162,8 @@ advanced:
 3. **Create custom config:** Use `-c` flag to specify your own configuration file
 
 ### Key Features
-- **Case-insensitive matching:** Works regardless of capitalization
-- **Fallback system:** Preserves unmapped categories unchanged
-- **Validation:** Comprehensive error checking and helpful messages
+- **Case-insensitive matching:** Works regardless of capitalization (configurable)
+- **Fallback system:** Preserves unmapped categories unchanged  
 - **Statistics:** Shows category remapping summary after conversion
 
 ## 📊 What the Script Does
@@ -147,7 +171,7 @@ advanced:
 1. **🔍 Discovery:** Finds all `.csv` files in input directory
 2. **📋 Format Detection:** Automatically identifies PC export format  
 3. **🔄 Category Mapping:** Applies comprehensive category conversions
-4. **✅ Validation:** Ensures data integrity and proper formatting
+4. **✅ Data Processing:** Ensures proper formatting and data integrity
 5. **📤 Export:** Creates Monarch-compatible CSV files with `-monarch` suffix
 6. **📈 Reporting:** Provides detailed conversion statistics and remapping summary
 
@@ -160,7 +184,7 @@ advanced:
 
 ## 🧪 Testing
 
-The project includes a comprehensive test suite with 35+ tests covering:
+The project includes a comprehensive test suite with 36 tests covering:
 
 ### Unit Tests
 - Category mapping functionality
@@ -190,7 +214,7 @@ python -m pytest tests/test_migrate_pc_to_monarch.py -v
 ## 🛠️ Development Setup
 
 ### Prerequisites
-- Python 3.7+
+- Python 3.6+ (uses f-strings, pathlib, and typing module)
 - PyYAML for configuration file parsing
 
 ### Installation
@@ -230,7 +254,7 @@ python migrate_pc_to_monarch.py --version
 **"Category mapping issues"**
 - Check `config.yaml` for proper YAML syntax
 - Verify category names match your PC export exactly
-- Enable case-insensitive matching in config
+- Case-insensitive matching is enabled by default
 
 **"Import errors in Monarch"**  
 - Verify CSV files have exactly 8 columns
@@ -262,7 +286,7 @@ Example output:
 📋 Category Remapping Summary:
   • 156 transactions: 'Gasoline/Fuel' → 'Gas'
   • 89 transactions: 'Restaurants' → 'Restaurants & Bars'
-  • 67 transactions: 'Groceries' → 'Groceries'
+  • 67 transactions: 'Healthcare/Medical' → 'Medical'
 ```
 
 ## 🤝 Contributing

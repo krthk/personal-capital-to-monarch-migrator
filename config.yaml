@@ -251,19 +251,6 @@ category_mappings:
 
 # Advanced Settings (optional)
 advanced:
-  # Preserve original category if no mapping found
-  preserve_unmapped_categories: true
-  
   # Case sensitivity for category matching
+  # When false, matching is case-insensitive (e.g., "gasoline/fuel" matches "Gasoline/Fuel")
   case_sensitive_matching: false
-  
-  # Log category remapping statistics
-  show_remapping_stats: true
-  
-  # Validation settings
-  validation:
-    # Warn about transactions with empty categories
-    warn_empty_categories: true
-    
-    # Warn about very large transaction amounts (for data validation)
-    warn_large_amounts_threshold: 10000.00
