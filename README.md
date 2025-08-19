@@ -305,9 +305,9 @@ Example output:
 
 ## 💡 Ready to Switch to Monarch Money?
 
-If this tool helped you successfully migrate your data and you're ready to make the switch to Monarch Money, consider using my referral link - we both get a free month!
+If this tool helped you successfully migrate your data and you're ready to make the switch to Monarch Money, consider using my referral link - you get 50% off your first year!
 
-**[Get Monarch Money (1 month free for both of us)](https://www.monarchmoney.com/referral/slv1brf4ut)**
+**[Get Monarch Money](https://www.monarchmoney.com/referral/slv1brf4ut)**
 
 *This tool will always remain free and open source, regardless of referrals. The link above is just a way to support the project if you find it useful.*
 
