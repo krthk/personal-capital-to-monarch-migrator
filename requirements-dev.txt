@@ -1,0 +1,21 @@
+# Development Dependencies for PC to Monarch Migration Script
+# Install with: pip install -r requirements-dev.txt
+
+# Testing Framework
+pytest>=7.0.0              # Core testing framework
+pytest-cov>=4.0.0          # Coverage reporting for tests
+pytest-mock>=3.10.0        # Mock support for testing
+pytest-xdist>=3.0.0        # Parallel test execution
+
+# Code Quality
+flake8>=6.0.0              # Code style checking
+black>=23.0.0              # Code formatting
+isort>=5.12.0              # Import sorting
+mypy>=1.0.0                # Type checking
+
+# Test Data Generation (optional)
+faker>=18.0.0              # Generate fake test data if needed
+
+# Documentation (optional)
+sphinx>=6.0.0              # Documentation generation
+sphinx-rtd-theme>=1.2.0    # Read the Docs theme for documentation

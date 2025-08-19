@@ -1,0 +1,5 @@
+Date,Description,Category,Tags,Amount
+2024-01-15,"Zero amount transaction","Transfers",,0.00
+2024-01-14,"Dividend Received","Investment Income",,0.01
+2024-01-13,"Service Fee Reversal","Service Charges/Fees",,0.00
+2024-01-12,"Round-up Transfer","Transfers",,-0.50

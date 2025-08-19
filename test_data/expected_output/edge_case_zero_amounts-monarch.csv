@@ -1,0 +1,5 @@
+Date,Merchant,Category,Account,Original Statement,Notes,Amount,Tags
+2024-01-15,Zero amount transaction,Transfer,,Zero amount transaction,,0.00,
+2024-01-14,Dividend Received,Dividends & Capital Gains,,Dividend Received,,0.01,
+2024-01-13,Service Fee Reversal,Service Charges,,Service Fee Reversal,,0.00,
+2024-01-12,Round-up Transfer,Transfer,,Round-up Transfer,,-0.50,
