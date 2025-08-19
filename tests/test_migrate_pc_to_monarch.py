@@ -26,6 +26,12 @@ from typing import Dict, List
 from unittest.mock import patch, mock_open
 
 # Import the functions we're testing
+import sys
+from pathlib import Path
+
+# Add root directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from migrate_pc_to_monarch import (
     get_category_mappings,
     detect_pc_format,
@@ -325,8 +331,8 @@ class TestEndToEndConversion:
     
     def test_convert_sample_format2(self):
         """Test conversion of sample format2 file."""
-        input_file = 'test_data/input/sample_format2.csv'
-        expected_file = 'test_data/expected_output/sample_format2-monarch.csv'
+        input_file = 'tests/test_data/input/sample_format2.csv'
+        expected_file = 'tests/test_data/expected_output/sample_format2-monarch.csv'
         
         # Skip if test files don't exist
         if not os.path.exists(input_file) or not os.path.exists(expected_file):
@@ -366,7 +372,7 @@ class TestEndToEndConversion:
     
     def test_convert_special_characters(self):
         """Test conversion of file with special characters."""
-        input_file = 'test_data/input/edge_case_special_chars.csv'
+        input_file = 'tests/test_data/input/edge_case_special_chars.csv'
         
         if not os.path.exists(input_file):
             pytest.skip("Test data file not found")
@@ -393,7 +399,7 @@ class TestEndToEndConversion:
     
     def test_convert_with_tags(self):
         """Test conversion preserves tags correctly."""
-        input_file = 'test_data/input/sample_with_tags.csv'
+        input_file = 'tests/test_data/input/sample_with_tags.csv'
         
         if not os.path.exists(input_file):
             pytest.skip("Test data file not found")
@@ -420,7 +426,7 @@ class TestEndToEndConversion:
     
     def test_convert_zero_amounts(self):
         """Test conversion handles zero and small amounts correctly."""
-        input_file = 'test_data/input/edge_case_zero_amounts.csv'
+        input_file = 'tests/test_data/input/edge_case_zero_amounts.csv'
         
         if not os.path.exists(input_file):
             pytest.skip("Test data file not found")
@@ -444,7 +450,7 @@ class TestEndToEndConversion:
     
     def test_convert_empty_file(self):
         """Test conversion of empty CSV file."""
-        input_file = 'test_data/input/empty_file.csv'
+        input_file = 'tests/test_data/input/empty_file.csv'
         
         if not os.path.exists(input_file):
             pytest.skip("Test data file not found")

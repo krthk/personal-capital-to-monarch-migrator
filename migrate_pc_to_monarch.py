@@ -43,6 +43,7 @@ def load_configuration(config_path: Optional[str] = None) -> Dict:
         yaml.YAMLError: If configuration file is malformed
     """
     if config_path is None:
+        # Default config.yaml is in the same directory as the script
         config_path = Path(__file__).parent / 'config.yaml'
     else:
         config_path = Path(config_path)
@@ -439,12 +440,34 @@ def parse_arguments() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python migrate_pc_to_monarch.py                    # Use default config.yaml
-  python migrate_pc_to_monarch.py --config my.yaml  # Use custom config file
-  python migrate_pc_to_monarch.py --help            # Show this help message
+  python migrate_pc_to_monarch.py                           # Use defaults (./input, ./output)
+  python migrate_pc_to_monarch.py -i data -o results       # Custom directories
+  python migrate_pc_to_monarch.py --config my.yaml        # Custom config file
+  python migrate_pc_to_monarch.py -i ~/Downloads -o ~/Desktop/monarch  # Absolute paths
+  python migrate_pc_to_monarch.py --help                  # Show this help message
 
-For more information, see the README-TESTING.md file.
+Directory Structure:
+  The script processes all .csv files in the input directory and creates
+  corresponding *-monarch.csv files in the output directory.
+
+For more information, see the README.md file.
         """
+    )
+    
+    parser.add_argument(
+        '--input-dir', '-i',
+        type=str,
+        default='input',
+        help='Input directory containing Personal Capital CSV files (default: ./input)',
+        metavar='INPUT_DIR'
+    )
+    
+    parser.add_argument(
+        '--output-dir', '-o', 
+        type=str,
+        default='output',
+        help='Output directory for converted Monarch CSV files (default: ./output)',
+        metavar='OUTPUT_DIR'
     )
     
     parser.add_argument(
@@ -465,19 +488,19 @@ For more information, see the README-TESTING.md file.
 
 def main() -> None:
     """
-    Main function to process all Personal Capital CSV files in the input folder.
+    Main function to process all Personal Capital CSV files in the specified input folder.
     
     This function orchestrates the entire batch conversion process:
-    1. Parses command-line arguments (including custom config file path)
+    1. Parses command-line arguments (including custom directories and config file path)
     2. Validates input/output directory structure
     3. Discovers Personal Capital CSV files to convert
     4. Processes each file through the conversion pipeline
     5. Provides detailed progress feedback and statistics
     6. Generates summary report of all conversions and category remappings
     
-    Directory Structure Expected:
-        input/          - Contains Personal Capital CSV exports
-        output/         - Will contain Monarch-compatible CSV files (created if needed)
+    Directory Structure:
+        Input Directory:  Contains Personal Capital CSV exports
+        Output Directory: Will contain Monarch-compatible CSV files (created if needed)
         
     File Naming Convention:
         Input:  any-filename.csv
@@ -489,22 +512,24 @@ def main() -> None:
     # Parse command-line arguments
     args = parse_arguments()
     
-    # Define directory paths
-    input_dir = Path('input')
-    output_dir = Path('output')
+    # Define directory paths from command-line arguments
+    input_dir = Path(args.input_dir)
+    output_dir = Path(args.output_dir)
     
     # Step 1: Validate input directory exists
     if not input_dir.exists():
-        print("❌ Error: 'input' directory not found!")
-        print("Please create an 'input' directory and place your Personal Capital CSV files there.")
+        print(f"❌ Error: Input directory '{input_dir}' not found!")
+        print(f"Please create the directory '{input_dir}' and place your Personal Capital CSV files there.")
+        print(f"Or use -i flag to specify a different input directory.")
         return
     
     # Step 2: Create output directory if it doesn't exist
     try:
-        output_dir.mkdir(exist_ok=True)
-        print(f"📁 Output directory ready: {output_dir.absolute()}")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"📁 Input directory: {input_dir.absolute()}")
+        print(f"📁 Output directory: {output_dir.absolute()}")
     except OSError as e:
-        print(f"❌ Error creating output directory: {e}")
+        print(f"❌ Error creating output directory '{output_dir}': {e}")
         return
     
     # Step 3: Discover Personal Capital CSV files to process
@@ -512,8 +537,9 @@ def main() -> None:
     pc_files = [f for f in csv_files if not f.endswith('-monarch.csv')]
     
     if not pc_files:
-        print("⚠️ No Personal Capital CSV files found in 'input' directory!")
-        print("Please place your Personal Capital transaction exports (.csv files) in the 'input' folder.")
+        print(f"⚠️ No Personal Capital CSV files found in '{input_dir}' directory!")
+        print(f"Please place your Personal Capital transaction exports (.csv files) in the '{input_dir}' folder.")
+        print(f"Or use -i flag to specify a different input directory containing your CSV files.")
         return
     
     # Step 4: Process each file and track overall statistics

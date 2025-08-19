@@ -16,6 +16,9 @@ from unittest.mock import patch
 import io
 
 # Import the main function
+# Add root directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from migrate_pc_to_monarch import main
 
 
@@ -35,8 +38,8 @@ class TestMainIntegration:
                 main()
                 
                 captured = capsys.readouterr()
-                assert "❌ Error: 'input' directory not found!" in captured.out
-                assert "Please create an 'input' directory" in captured.out
+                assert "❌ Error: Input directory 'input' not found!" in captured.out
+                assert "Please create the directory 'input'" in captured.out
                 
             finally:
                 os.chdir(original_cwd)
@@ -72,7 +75,7 @@ class TestMainIntegration:
             input_dir.mkdir()
             
             # Copy one of our test files
-            test_file_src = Path('test_data/input/sample_format2.csv')
+            test_file_src = Path('tests/test_data/input/sample_format2.csv')
             if test_file_src.exists():
                 shutil.copy(test_file_src, input_dir / 'sample_format2.csv')
                 
