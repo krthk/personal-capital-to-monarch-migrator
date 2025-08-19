@@ -51,17 +51,17 @@ class TestCategoryMappings:
         mappings = get_category_mappings()
         
         # Test mappings that appear in the user's test data
-        assert mappings["Gasoline/Fuel"] == "Gas"
-        assert mappings["Parking"] == "Parking & Tolls"
-        assert mappings["Transfers"] == "Transfer"
-        assert mappings["Credit Card Payments"] == "Credit Card Payment"
-        assert mappings["Travel"] == "Travel & Vacation"
-        assert mappings["Child"] == "Kids Gear & Supplies"
-        assert mappings["Entertainment"] == "Entertainment & Recreation"
-        assert mappings["Investment Income"] == "Dividends & Capital Gains"
-        assert mappings["Service Charges/Fees"] == "Service Charges"
-        assert mappings["Paychecks/Salary"] == "Paychecks"
-        assert mappings["ATM/Cash"] == "Cash & ATM"
+        # Note: With case_sensitive_matching: false, keys are lowercase
+        assert mappings["gasoline/fuel"] == "Gas"
+        assert mappings["transfers"] == "Transfer"
+        assert mappings["credit card payments"] == "Credit Card Payment"
+        assert mappings["travel"] == "Travel & Vacation"
+        assert mappings["child"] == "Child Care"  # Updated mapping in new config
+        assert mappings["entertainment"] == "Entertainment & Recreation"
+        assert mappings["investment income"] == "Interest"  # Updated mapping in new config
+        assert mappings["service charges/fees"] == "Financial Fees"  # Updated mapping in new config
+        assert mappings["paychecks/salary"] == "Paychecks"
+        assert mappings["atm/cash"] == "Cash & ATM"
     
     def test_category_mappings_no_duplicates(self):
         """Test that all mapping keys are unique."""
@@ -151,7 +151,7 @@ class TestTransactionTransformation:
         
         result = transform_transaction(pc_row, mappings)
         
-        assert result['Category'] == 'RSU'  # Mapped from 'Stocks'
+        assert result['Category'] == 'Stocks'  # Unmapped since 'Stocks' not in updated config
         assert result['Notes'] == 'Buy'  # Action field mapped to Notes
     
     def test_transform_missing_fields(self):
@@ -341,8 +341,8 @@ class TestEndToEndConversion:
                 
                 # Verify some remappings occurred
                 assert 'Gasoline/Fuel' in remapping_counts
-                assert 'Parking' in remapping_counts
                 assert 'Transfers' in remapping_counts
+                assert 'Child' in remapping_counts  # This category should be remapped
                 
                 # Read generated file and compare with expected
                 with open(f.name, 'r') as generated, open(expected_file, 'r') as expected:
@@ -530,7 +530,9 @@ class TestDataIntegrity:
         assert result['Original Statement'] == original_data['Description']
         assert result['Tags'] == original_data['Tags']
         assert result['Amount'] == original_data['Amount']
-        assert result['Category'] == mappings[original_data['Category']]  # Properly mapped
+        # Test that category was properly mapped (using same logic as transform_transaction)
+        expected_category = mappings.get(original_data['Category']) or mappings.get(original_data['Category'].lower(), original_data['Category'])
+        assert result['Category'] == expected_category
 
 
 class TestErrorHandling:

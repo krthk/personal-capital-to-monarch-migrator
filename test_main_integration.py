@@ -8,12 +8,12 @@ management, file discovery, and batch processing.
 
 import pytest
 import os
+import sys
 import tempfile
 import shutil
 from pathlib import Path
 from unittest.mock import patch
 import io
-import sys
 
 # Import the main function
 from migrate_pc_to_monarch import main
@@ -27,8 +27,11 @@ class TestMainIntegration:
         with tempfile.TemporaryDirectory() as temp_dir:
             # Change to temp directory where there's no 'input' folder
             original_cwd = os.getcwd()
+            original_argv = sys.argv[:]
             try:
                 os.chdir(temp_dir)
+                # Mock sys.argv to avoid interference with pytest arguments
+                sys.argv = ['migrate_pc_to_monarch.py']
                 main()
                 
                 captured = capsys.readouterr()
@@ -37,6 +40,7 @@ class TestMainIntegration:
                 
             finally:
                 os.chdir(original_cwd)
+                sys.argv = original_argv
     
     def test_main_with_empty_input_directory(self, capsys):
         """Test main function with empty input directory."""
@@ -46,8 +50,11 @@ class TestMainIntegration:
             input_dir.mkdir()
             
             original_cwd = os.getcwd()
+            original_argv = sys.argv[:]
             try:
                 os.chdir(temp_dir)
+                # Mock sys.argv to avoid interference with pytest arguments
+                sys.argv = ['migrate_pc_to_monarch.py']
                 main()
                 
                 captured = capsys.readouterr()
@@ -55,6 +62,7 @@ class TestMainIntegration:
                 
             finally:
                 os.chdir(original_cwd)
+                sys.argv = original_argv
     
     def test_main_with_test_data(self, capsys):
         """Test main function with real test data."""
@@ -69,8 +77,11 @@ class TestMainIntegration:
                 shutil.copy(test_file_src, input_dir / 'sample_format2.csv')
                 
                 original_cwd = os.getcwd()
+                original_argv = sys.argv[:]
                 try:
                     os.chdir(temp_dir)
+                    # Mock sys.argv to avoid interference with pytest arguments
+                    sys.argv = ['migrate_pc_to_monarch.py']
                     main()
                     
                     captured = capsys.readouterr()
@@ -87,6 +98,7 @@ class TestMainIntegration:
                     
                 finally:
                     os.chdir(original_cwd)
+                    sys.argv = original_argv
             else:
                 pytest.skip("Test data file not found")
     
@@ -104,8 +116,11 @@ class TestMainIntegration:
                 f.write("Date,Description,Category,Tags,Amount\n")
             
             original_cwd = os.getcwd()
+            original_argv = sys.argv[:]
             try:
                 os.chdir(temp_dir)
+                # Mock sys.argv to avoid interference with pytest arguments
+                sys.argv = ['migrate_pc_to_monarch.py']
                 main()
                 
                 captured = capsys.readouterr()
@@ -115,6 +130,7 @@ class TestMainIntegration:
                 
             finally:
                 os.chdir(original_cwd)
+                sys.argv = original_argv
     
     def test_main_output_directory_creation_error(self):
         """Test main function when output directory cannot be created."""
@@ -129,13 +145,17 @@ class TestMainIntegration:
                 f.write("blocking file")
             
             original_cwd = os.getcwd()
+            original_argv = sys.argv[:]
             try:
                 os.chdir(temp_dir)
+                # Mock sys.argv to avoid interference with pytest arguments
+                sys.argv = ['migrate_pc_to_monarch.py']
                 # This should handle the OSError gracefully
                 main()
                 
             finally:
                 os.chdir(original_cwd)
+                sys.argv = original_argv
 
 
 if __name__ == '__main__':

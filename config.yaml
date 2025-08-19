@@ -1,0 +1,269 @@
+# Personal Capital to Monarch Money Migration Configuration
+# 
+# This file defines how Personal Capital transaction categories are mapped to 
+# Monarch Money categories during the migration process.
+#
+# You can customize these mappings to match your personal categorization preferences.
+# Categories not listed here will remain unchanged during migration.
+
+# Application Settings
+settings:
+  # Version of this configuration file format
+  version: "1.0"
+  
+  # Default directories (relative to script location)
+  input_directory: "input"
+  output_directory: "output"
+  
+  # File naming convention for output files
+  output_suffix: "-monarch"
+
+# Category Mappings: Personal Capital -> Monarch Money
+# Format: "Personal Capital Category": "Monarch Money Category"
+# Based on official category lists from Personal Capital and Monarch Money
+category_mappings:
+  
+  # === INCOME CATEGORIES ===
+  # Personal Capital Income -> Monarch Income
+  "Consulting": "Business Income"
+  "Deposits": "Other Income"
+  "Dividends Received": "Interest"  # Monarch groups dividends with interest
+  "Dividends Received (tax-advantaged)": "Interest"
+  "Interest": "Interest"
+  "Investment Income": "Interest"  # Monarch groups investment income with interest
+  "Other Income": "Other Income"
+  "Paychecks/Salary": "Paychecks"
+  "Refunds & Reimbursements": "Other Income"
+  "Retirement Income": "Other Income"
+  "Rewards": "Other Income"
+  "Sales": "Business Income"
+  "Services": "Business Income"
+
+  # === TRANSPORTATION & AUTOMOTIVE ===
+  # Personal Capital -> Monarch Auto & Transport
+  "Gasoline/Fuel": "Gas"
+  "Automotive": "Auto Maintenance"
+  "Auto & Transport": "Auto Maintenance"
+  "Auto Maintenance": "Auto Maintenance"
+  "Car Maintenance": "Auto Maintenance"
+  "Car Payment": "Auto Payment"
+  "Auto Payment": "Auto Payment"
+  "Public Transportation": "Public Transit"
+  "Uber": "Taxi & Ride Shares"
+  "Lyft": "Taxi & Ride Shares"
+  "Taxi": "Taxi & Ride Shares"
+  
+  # === FOOD & DINING ===
+  # Personal Capital -> Monarch Food & Dining
+  "Groceries": "Groceries"
+  "Food & Dining": "Groceries"  # Generic food -> groceries unless clearly restaurant
+  "Supermarkets": "Groceries"
+  "Restaurants": "Restaurants & Bars"
+  "Dining": "Restaurants & Bars"
+  "Fast Food": "Restaurants & Bars"
+  "Coffee Shops": "Coffee Shops"
+  "Bars": "Restaurants & Bars"
+  "Alcohol": "Restaurants & Bars"
+  
+  # === HOUSING & BILLS/UTILITIES ===
+  # Personal Capital -> Monarch Housing
+  "Home": "Home Improvement"
+  "Home Improvement": "Home Improvement" 
+  "Home Maintenance": "Home Improvement"
+  "Mortgage & Rent": "Mortgage"
+  "Mortgages": "Mortgage"
+  "Rent": "Rent"
+  
+  # Personal Capital -> Monarch Bills & Utilities
+  "Utilities": "Gas & Electric"  # Generic utilities -> gas & electric
+  "Electric": "Gas & Electric"
+  "Gas & Electric": "Gas & Electric"
+  "Water": "Water"
+  "Garbage": "Garbage"
+  "Internet": "Internet & Cable"
+  "Cable/Satellite": "Internet & Cable"
+  "Phone": "Phone"
+  "Telephone": "Phone"
+  "Cell Phone": "Phone"
+  "Mobile Phone": "Phone"
+  "Other Bills": "Miscellaneous"  # Generic other bills
+  
+  # === SHOPPING ===
+  # Personal Capital -> Monarch Shopping
+  "Shopping": "Shopping"
+  "General Merchandise": "Shopping"
+  "Department Stores": "Shopping"
+  "Clothing": "Clothing"
+  "Clothing/Shoes": "Clothing"
+  "Electronics": "Electronics"
+  "Furniture & Housewares": "Furniture & Housewares"
+  
+  # === HEALTH & WELLNESS ===
+  # Personal Capital -> Monarch Health & Wellness
+  "Healthcare/Medical": "Medical"
+  "Medical": "Medical"
+  "Doctor": "Medical"
+  "Dentist": "Dentist"
+  "Pharmacy": "Medical"
+  "Health & Fitness": "Fitness"
+  "Gym": "Fitness"
+  "Fitness": "Fitness"
+  
+  # === TRAVEL & LIFESTYLE ===
+  # Personal Capital -> Monarch Travel & Lifestyle
+  "Travel": "Travel & Vacation"
+  "Travel & Vacation": "Travel & Vacation"
+  "Vacation": "Travel & Vacation"
+  "Hotels": "Travel & Vacation"
+  "Airfare": "Travel & Vacation"
+  "Entertainment": "Entertainment & Recreation"
+  "Movies": "Entertainment & Recreation"
+  "Music": "Entertainment & Recreation"
+  "Games": "Entertainment & Recreation"
+  "Hobbies": "Entertainment & Recreation"
+  "Sports": "Entertainment & Recreation"
+  "Recreation": "Entertainment & Recreation"
+  "Personal": "Personal"  # Personal Capital "Personal" -> Monarch "Personal"
+  "Personal Care": "Personal Care"  # Personal care items and services
+  "Pets": "Pets"
+  "Pet Care": "Pets"
+  "Pets/Pet Care": "Pets"
+  "Veterinary": "Pets"
+  "Pet Food": "Pets"
+  "Fun Money": "Fun Money"
+  
+  # === CHILDREN ===
+  # Personal Capital -> Monarch Children
+  "Child/Dependent": "Child Care"  # PC specific category
+  "Child": "Child Care"  # Generic child expenses -> child care
+  "Family": "Child Care"
+  "Kids": "Child Care"
+  "Baby": "Child Care"
+  "Childcare": "Child Care"
+  "Child Activities": "Child Activities"
+  
+  # === EDUCATION ===
+  # Personal Capital -> Monarch Education  
+  "Education": "Education"
+  "School": "Education"
+  "Student Loan": "Student Loans"
+  "Tuition": "Education"
+  
+  # === PETS ===
+  "Pets": "Pets"
+  "Pet Care": "Pets"
+  "Pets/Pet Care": "Pets"
+  "Veterinary": "Pets"
+  "Pet Food": "Pets"
+  
+  # === ENTERTAINMENT & RECREATION ===
+  "Entertainment": "Entertainment & Recreation"
+  "Movies": "Entertainment & Recreation"
+  "Music": "Entertainment & Recreation"
+  "Games": "Entertainment & Recreation"
+  "Hobbies": "Entertainment & Recreation"  # User override: was "Poker"
+  "Sports": "Entertainment & Recreation"
+  "Recreation": "Entertainment & Recreation"
+  "Travel & Vacation": "Travel & Vacation"
+  "Travel": "Travel & Vacation"
+  "Vacation": "Travel & Vacation"
+  "Hotels": "Travel & Vacation"
+  "Airfare": "Travel & Vacation"
+  
+  # === FINANCIAL ===
+  # Personal Capital -> Monarch Financial
+  "ATM/Cash": "Cash & ATM"
+  "Cash": "Cash & ATM"
+  "Service Charges/Fees": "Financial Fees"  # PC -> Monarch Financial Fees
+  "Bank Fees": "Financial Fees"
+  "ATM Fees": "Financial Fees"
+  "Advisory Fee": "Financial & Legal Services"
+  "Business Miscellaneous": "Financial & Legal Services"
+  "Checks": "Check"
+  "Dues & Subscriptions": "Miscellaneous"  # Generic subscriptions
+  "General Rebalance": "Balance Adjustments"  # PC specific -> Monarch equivalent
+  "Portfolio Management": "Financial & Legal Services"
+  "Loans": "Loan Repayment"  # PC -> Monarch Loan Repayment
+  "Insurance": "Insurance"  # Generic insurance
+  "Taxes": "Taxes"
+  
+  # === TRANSFERS ===
+  # Personal Capital -> Monarch Transfers
+  "Transfers": "Transfer"
+  "Transfer": "Transfer"
+  "Credit Card Payments": "Credit Card Payment"
+  "Credit Card Payment": "Credit Card Payment"
+  "Balance Adjustments": "Balance Adjustments"
+  
+  # === OTHER SPECIAL CATEGORIES ===  
+  # Personal Capital "Other" categories -> Monarch equivalents
+  "Allocated Excess Cash": "Balance Adjustments"
+  "Cash Raised": "Balance Adjustments"
+  "Client Request": "Balance Adjustments"
+  "Diversified Transferred-in Securities": "Balance Adjustments"
+  "Expense Reimbursement": "Balance Adjustments"
+  "Not Traded": "Balance Adjustments"
+  "Personal Strategy Implementation": "Balance Adjustments"
+  "Retirement Contributions": "Balance Adjustments"
+  "Savings": "Balance Adjustments"
+  "Securities Trades": "Balance Adjustments"
+  "Strategy Change": "Balance Adjustments"
+  "Tax Location": "Balance Adjustments"
+  "Tax Loss Harvesting": "Balance Adjustments"
+  "Uncategorized": "Uncategorized"
+
+  # === GIFTS & DONATIONS ===
+  # Personal Capital -> Monarch Gifts & Donations
+  "Charitable Giving": "Charity"
+  "Charity": "Charity"
+  "Donations": "Charity"
+  "Gifts": "Gifts"
+  "Gift": "Gifts"
+
+  # === BUSINESS CATEGORIES ===
+  # Personal Capital -> Monarch Business (for business users)
+  "Advertising": "Advertising & Promotion"
+  "Business": "Office Supplies & Expenses"  # Generic business -> office supplies
+  "Office Supplies": "Office Supplies & Expenses"
+  "Office Maintenance": "Office Supplies & Expenses"  # Office maintenance and repairs
+  "Postage & Shipping": "Postage & Shipping"
+  "Printing": "Office Supplies & Expenses"  # Printing and copying expenses
+  "Business Travel & Meals": "Business Travel & Meals"
+  "Business Auto Expenses": "Business Auto Expenses"
+  "Business Insurance": "Business Insurance"
+  "Office Rent": "Office Rent"
+  "Employee Wages & Contract Labor": "Employee Wages & Contract Labor"
+  "Wages Paid": "Employee Wages & Contract Labor"  # Wages and salaries paid to employees
+  "Business Utilities & Communication": "Business Utilities & Communication"
+
+  # === SERVICES & SUBSCRIPTIONS ===
+  # Personal Capital -> Monarch Services & Subscriptions
+  "Online Services": "Online Services"  # Streaming, software subscriptions, web services
+  
+  # === COMMON UNMAPPED CATEGORIES ===
+  # Fallback mappings for common categories not in official lists
+  "Other Expenses": "Miscellaneous"
+  "Miscellaneous": "Miscellaneous"
+  "Fees": "Financial Fees"
+  "Late Fees": "Financial Fees"
+  "Interest Charged": "Financial Fees"
+  "Foreign Transaction Fee": "Financial Fees"
+
+# Advanced Settings (optional)
+advanced:
+  # Preserve original category if no mapping found
+  preserve_unmapped_categories: true
+  
+  # Case sensitivity for category matching
+  case_sensitive_matching: false
+  
+  # Log category remapping statistics
+  show_remapping_stats: true
+  
+  # Validation settings
+  validation:
+    # Warn about transactions with empty categories
+    warn_empty_categories: true
+    
+    # Warn about very large transaction amounts (for data validation)
+    warn_large_amounts_threshold: 10000.00

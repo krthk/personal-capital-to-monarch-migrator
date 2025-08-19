@@ -1,6 +1,9 @@
 # Development Dependencies for PC to Monarch Migration Script
 # Install with: pip install -r requirements-dev.txt
 
+# Core Dependencies
+PyYAML>=6.0                 # YAML configuration file parsing
+
 # Testing Framework
 pytest>=7.0.0              # Core testing framework
 pytest-cov>=4.0.0          # Coverage reporting for tests

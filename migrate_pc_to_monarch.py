@@ -22,42 +22,163 @@ Version: 1.0
 import csv
 import os
 import glob
+import argparse
+import yaml
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
 
-def get_category_mappings() -> Dict[str, str]:
+def load_configuration(config_path: Optional[str] = None) -> Dict:
+    """
+    Load configuration from YAML file.
+    
+    Args:
+        config_path (Optional[str]): Path to configuration file. If None, uses default 'config.yaml'
+        
+    Returns:
+        Dict: Configuration dictionary loaded from YAML file
+        
+    Raises:
+        FileNotFoundError: If configuration file doesn't exist
+        yaml.YAMLError: If configuration file is malformed
+    """
+    if config_path is None:
+        config_path = Path(__file__).parent / 'config.yaml'
+    else:
+        config_path = Path(config_path)
+    
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"Configuration file not found: {config_path}\n"
+            f"Please ensure config.yaml exists or specify a custom config file path."
+        )
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+            
+        if not config:
+            raise ValueError("Configuration file is empty")
+            
+        return config
+        
+    except yaml.YAMLError as e:
+        raise yaml.YAMLError(f"Error parsing configuration file {config_path}: {e}")
+
+
+def validate_configuration(config: Dict) -> None:
+    """
+    Validate the structure and content of the configuration dictionary.
+    
+    Args:
+        config (Dict): Configuration dictionary to validate
+        
+    Raises:
+        ValueError: If configuration is invalid or missing required sections
+    """
+    # Check for required top-level sections
+    required_sections = ['category_mappings']
+    for section in required_sections:
+        if section not in config:
+            raise ValueError(f"Configuration missing required section: '{section}'")
+    
+    # Validate category mappings
+    category_mappings = config['category_mappings']
+    if not isinstance(category_mappings, dict):
+        raise ValueError("'category_mappings' must be a dictionary")
+    
+    if not category_mappings:
+        raise ValueError("'category_mappings' cannot be empty")
+    
+    # Validate that all mappings are strings
+    for pc_category, monarch_category in category_mappings.items():
+        if not isinstance(pc_category, str) or not isinstance(monarch_category, str):
+            raise ValueError(
+                f"Category mapping must be string -> string: '{pc_category}' -> '{monarch_category}'")
+    
+    # Validate settings if present
+    if 'settings' in config:
+        settings = config['settings']
+        if not isinstance(settings, dict):
+            raise ValueError("'settings' must be a dictionary")
+
+
+def get_category_mappings(config_path: Optional[str] = None) -> Dict[str, str]:
     """
     Get the mapping dictionary from Personal Capital categories to Monarch categories.
     
-    This function is extracted to make it easy to replace with configuration file loading
-    in the future. Each mapping transforms a Personal Capital category name to the 
-    corresponding category name expected by Monarch Money.
+    This function loads category mappings from a YAML configuration file, allowing
+    users to customize how Personal Capital categories are mapped to Monarch Money
+    categories without modifying the script code.
     
+    Args:
+        config_path (Optional[str]): Path to custom configuration file. If None, uses 'config.yaml'
+        
     Returns:
         Dict[str, str]: Dictionary mapping PC categories to Monarch categories
         
     Examples:
         "Gasoline/Fuel" -> "Gas"
-        "Credit Card Payments" -> "Credit Card Payment"
+        "Credit Card Payments" -> "Credit Card Payment"  
         "Child" -> "Kids Gear & Supplies"
+        
+    Raises:
+        FileNotFoundError: If configuration file doesn't exist
+        ValueError: If configuration file is invalid
+        yaml.YAMLError: If configuration file is malformed
+    """
+    try:
+        # Load and validate configuration
+        config = load_configuration(config_path)
+        validate_configuration(config)
+        
+        # Extract category mappings
+        category_mappings = config['category_mappings']
+        
+        # Apply case-insensitive matching if configured
+        if config.get('advanced', {}).get('case_sensitive_matching', True) is False:
+            # Create case-insensitive mapping by converting keys to lowercase
+            case_insensitive_mappings = {}
+            for pc_category, monarch_category in category_mappings.items():
+                case_insensitive_mappings[pc_category.lower()] = monarch_category
+            return case_insensitive_mappings
+        
+        return category_mappings
+        
+    except (FileNotFoundError, ValueError, yaml.YAMLError) as e:
+        print(f"⚠️ Configuration Error: {e}")
+        print(f"🔄 Falling back to default category mappings...")
+        
+        # Fallback to hardcoded mappings if config file fails
+        return get_default_category_mappings()
+
+
+def get_default_category_mappings() -> Dict[str, str]:
+    """
+    Get default hardcoded category mappings as fallback.
+    
+    This function provides the original hardcoded category mappings as a fallback
+    when the configuration file cannot be loaded or is invalid.
+    
+    Returns:
+        Dict[str, str]: Dictionary with default PC to Monarch category mappings
     """
     return {
-        # Family and personal care categories
+        # Transportation categories  
+        "Gasoline/Fuel": "Gas",
+        "Automotive": "Auto Maintenance",
+        "Parking": "Parking & Tolls",
+        
+        # Family and personal care
         "Child": "Kids Gear & Supplies",
         "Clothing/Shoes": "Clothing",
         "Healthcare/Medical": "Medical",
         "Pets/Pet Care": "Pets",
         
-        # Transportation categories
-        "Automotive": "Auto Maintenance",
-        "Gasoline/Fuel": "Gas",
-        "Parking": "Parking & Tolls",
-        
         # Entertainment and lifestyle
         "Travel": "Travel & Vacation",
-        "Hobbies": "Poker",  # User-specific mapping
         "Entertainment": "Entertainment & Recreation",
+        "Hobbies": "Entertainment & Recreation",  # Generic fallback
         
         # Financial transactions
         "Credit Card Payments": "Credit Card Payment",
@@ -69,7 +190,7 @@ def get_category_mappings() -> Dict[str, str]:
         "Paychecks/Salary": "Paychecks",
         "Dividends Received": "Dividends & Capital Gains",
         "Investment Income": "Dividends & Capital Gains",
-        "Stocks": "RSU",  # User-specific: treats stock transactions as RSU
+        "Stocks": "Investment",  # Generic fallback
         
         # Housing and utilities
         "Mortgages": "Mortgage",
@@ -180,7 +301,16 @@ def transform_transaction(row: Dict[str, str], category_mappings: Dict[str, str]
     """
     # Get the original category and apply mapping if it exists
     original_category = row.get('Category', '')
-    mapped_category = category_mappings.get(original_category, original_category)
+    
+    # Try exact match first, then case-insensitive match if needed
+    mapped_category = category_mappings.get(original_category)
+    if mapped_category is None:
+        # If no exact match, try case-insensitive lookup
+        # This handles when category_mappings has lowercase keys due to case_sensitive_matching: false
+        mapped_category = category_mappings.get(original_category.lower(), original_category)
+    else:
+        # Use the mapped category from exact match
+        pass
     
     # Build the Monarch transaction record
     # Note: Monarch expects specific column order and naming
@@ -246,19 +376,21 @@ def write_monarch_csv(transactions: List[Dict[str, str]], output_file: str) -> N
         raise IOError(f"Unable to write output file {output_file}: {e}")
 
 
-def convert_pc_to_monarch(input_file: str, output_file: str) -> Tuple[int, Dict]:
+def convert_pc_to_monarch(input_file: str, output_file: str, config_path: Optional[str] = None) -> Tuple[int, Dict]:
     """
     Convert a Personal Capital CSV file to Monarch Money import format.
     
     This is the main conversion function that orchestrates the entire process:
     1. Read and parse the Personal Capital CSV file
-    2. Transform each transaction to Monarch format
-    3. Track category remapping statistics
-    4. Write the output CSV file
+    2. Load category mappings from configuration file
+    3. Transform each transaction to Monarch format
+    4. Track category remapping statistics
+    5. Write the output CSV file
     
     Args:
         input_file (str): Path to input Personal Capital CSV file
         output_file (str): Path where Monarch CSV should be written
+        config_path (Optional[str]): Path to custom configuration file
     
     Returns:
         Tuple[int, Dict]: (number of transactions processed, remapping statistics)
@@ -272,8 +404,8 @@ def convert_pc_to_monarch(input_file: str, output_file: str) -> Tuple[int, Dict]
     pc_transactions, pc_format = read_pc_transactions(input_file)
     print(f"Detected {pc_format} for {os.path.basename(input_file)}")
     
-    # Step 2: Get category mappings (future: load from config file)
-    category_mappings = get_category_mappings()
+    # Step 2: Get category mappings from configuration file
+    category_mappings = get_category_mappings(config_path)
     
     # Step 3: Transform each transaction and track remapping statistics
     monarch_transactions = []
@@ -295,16 +427,53 @@ def convert_pc_to_monarch(input_file: str, output_file: str) -> Tuple[int, Dict]
     return len(monarch_transactions), remapping_counts
 
 
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command-line arguments.
+    
+    Returns:
+        argparse.Namespace: Parsed command-line arguments
+    """
+    parser = argparse.ArgumentParser(
+        description="Convert Personal Capital CSV exports to Monarch Money import format",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python migrate_pc_to_monarch.py                    # Use default config.yaml
+  python migrate_pc_to_monarch.py --config my.yaml  # Use custom config file
+  python migrate_pc_to_monarch.py --help            # Show this help message
+
+For more information, see the README-TESTING.md file.
+        """
+    )
+    
+    parser.add_argument(
+        '--config', '-c',
+        type=str,
+        help='Path to custom YAML configuration file (default: config.yaml)',
+        metavar='CONFIG_FILE'
+    )
+    
+    parser.add_argument(
+        '--version', '-v',
+        action='version',
+        version='Personal Capital to Monarch Migration Script v2.0'
+    )
+    
+    return parser.parse_args()
+
+
 def main() -> None:
     """
     Main function to process all Personal Capital CSV files in the input folder.
     
     This function orchestrates the entire batch conversion process:
-    1. Validates input/output directory structure
-    2. Discovers Personal Capital CSV files to convert
-    3. Processes each file through the conversion pipeline
-    4. Provides detailed progress feedback and statistics
-    5. Generates summary report of all conversions and category remappings
+    1. Parses command-line arguments (including custom config file path)
+    2. Validates input/output directory structure
+    3. Discovers Personal Capital CSV files to convert
+    4. Processes each file through the conversion pipeline
+    5. Provides detailed progress feedback and statistics
+    6. Generates summary report of all conversions and category remappings
     
     Directory Structure Expected:
         input/          - Contains Personal Capital CSV exports
@@ -317,6 +486,9 @@ def main() -> None:
     The function skips files that already have '-monarch.csv' suffix to avoid
     re-processing already converted files.
     """
+    # Parse command-line arguments
+    args = parse_arguments()
+    
     # Define directory paths
     input_dir = Path('input')
     output_dir = Path('output')
@@ -362,7 +534,7 @@ def main() -> None:
         
         try:
             # Convert the Personal Capital file to Monarch format
-            transaction_count, remapping_counts = convert_pc_to_monarch(str(input_file), str(output_file))
+            transaction_count, remapping_counts = convert_pc_to_monarch(str(input_file), str(output_file), args.config)
             
             # Track success metrics
             total_transactions += transaction_count
