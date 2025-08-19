@@ -15,6 +15,20 @@ A comprehensive Python script that converts Personal Capital CSV transaction exp
 
 ## 🚀 Quick Start
 
+0. **Get the script:**
+   
+   **Option A: Download ZIP (Easiest)**
+   - Go to https://github.com/krthk/personal-capital-to-monarch-migrator
+   - Click the green "Code" button → "Download ZIP"
+   - Extract the ZIP file to your desired location
+   - Open Terminal/Command Prompt and navigate to the extracted folder
+   
+   **Option B: Git Clone**
+   ```bash
+   git clone https://github.com/krthk/personal-capital-to-monarch-migrator.git
+   cd personal-capital-to-monarch-migrator
+   ```
+
 1. **Install dependencies:**
    ```bash
    pip install PyYAML
