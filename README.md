@@ -32,7 +32,7 @@ A comprehensive Python script that converts Personal Capital CSV transaction exp
    
    > ⚠️ **Note:** Personal Capital's interface may change over time. If you cannot locate the export options as described, check their current help documentation or contact their support.
    
-   ![Personal Capital CSV Export](pc.png)
+   ![Personal Capital CSV Export](images/pc.png)
    *Personal Capital transaction view showing the CSV export button (highlighted with arrow)*
    
    **Organize your files:**
@@ -59,7 +59,7 @@ A comprehensive Python script that converts Personal Capital CSV transaction exp
    
    > ⚠️ **Note:** Monarch Money's interface may change over time. If you cannot locate the upload options as described, check their current help documentation or contact their support.
    
-   ![Monarch Money CSV Upload](monarch.png)
+   ![Monarch Money CSV Upload](images/monarch.png)
    *Monarch Money account edit menu showing "Upload transactions" option (highlighted with arrow)*
    
    **Verify your data:**
