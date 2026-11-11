@@ -23,6 +23,7 @@ import csv
 import os
 import glob
 import argparse
+import sys
 import yaml
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
@@ -239,6 +240,146 @@ def detect_pc_format(headers: List[str]) -> str:
         return 'format2'
 
 
+# Field names transform_transaction() reads out of a parsed row with row.get().
+# Export headers are not stable: Empower (formerly Personal Capital) has shipped
+# exports whose headers are lower-cased, and a file that has been round-tripped
+# through a spreadsheet or a browser download can carry stray padding or a
+# UTF-8 BOM on the first header. Because the lookups below are exact, an
+# unrecognised header yields an empty Date/Merchant/Amount for every row and the
+# script still reports success. Raw headers are therefore folded onto these
+# canonical names before rows are transformed.
+CANONICAL_FIELDS: Tuple[str, ...] = (
+    'Date',
+    'Description',
+    'Category',
+    'Tags',
+    'Amount',
+    'Action',
+    'Quantity',
+    'Price',
+)
+
+# Monarch's importer silently skips rows that have no date or amount, so a
+# missing value here means lost transaction history rather than a visible error.
+REQUIRED_FIELDS: Tuple[str, ...] = ('Date', 'Amount')
+
+
+def canonicalize_headers(fieldnames: List[str]) -> Tuple[Dict[str, str], List[str]]:
+    """
+    Map raw export headers onto the canonical field names this script reads.
+
+    Matching compares the stripped, lower-cased header against the lower-cased
+    canonical name, so 'date', ' Date ' and 'Date' all resolve to 'Date'. When
+    two headers would fold onto the same canonical field, only the first one
+    claims it; the rest are left as their own names so no column is overwritten.
+
+    Args:
+        fieldnames (List[str]): Raw headers from csv.DictReader.fieldnames
+
+    Returns:
+        Tuple[Dict[str, str], List[str]]: (raw header -> canonical field,
+                                          raw headers that did not fold)
+
+    Examples:
+        ['date', 'Description'] -> ({'date': 'Date', 'Description': 'Description'}, [])
+    """
+    header_map: Dict[str, str] = {}
+    unrecognized: List[str] = []
+    claimed: set = set()
+
+    for raw_header in fieldnames:
+        if raw_header is None:
+            continue
+        folded = raw_header.strip().lower()
+        match = next((field for field in CANONICAL_FIELDS if field.lower() == folded), None)
+        if match is not None and match not in claimed:
+            header_map[raw_header] = match
+            claimed.add(match)
+        else:
+            header_map[raw_header] = raw_header
+            unrecognized.append(raw_header)
+
+    return header_map, unrecognized
+
+
+def canonicalize_row(row: Dict[str, str], header_map: Dict[str, str]) -> Dict[str, str]:
+    """
+    Re-key one parsed CSV row onto canonical field names.
+
+    Args:
+        row (Dict[str, str]): Parsed row as keyed by csv.DictReader
+        header_map (Dict[str, str]): Raw header -> canonical field mapping
+
+    Returns:
+        Dict[str, str]: Row keyed by canonical field name plus any extra columns.
+        Values in columns that folded onto an already-populated field are kept
+        only when they are non-empty and the earlier value was blank.
+    """
+    canonical_row: Dict[str, str] = {}
+
+    for raw_header, value in row.items():
+        if raw_header is None:
+            # csv.DictReader parks surplus columns beyond the header row under None.
+            continue
+        canonical_field = header_map.get(raw_header, raw_header)
+        if canonical_field in canonical_row:
+            if not str(canonical_row[canonical_field]).strip() and str(value).strip():
+                canonical_row[canonical_field] = value
+            continue
+        canonical_row[canonical_field] = value
+
+    return canonical_row
+
+
+def validate_monarch_rows(monarch_transactions: List[Dict[str, str]], input_file: str,
+                          max_listed: int = 10) -> None:
+    """
+    Refuse to emit rows that Monarch would silently drop on import.
+
+    A row whose Date or Amount is blank is not an ordinary formatting problem:
+    Monarch's importer skips it without surfacing a row-level error, so the
+    migration looks like it worked while history is missing. The blank usually
+    comes from a column header this script could not fold onto a canonical field,
+    which is why the message names the required columns.
+
+    Args:
+        monarch_transactions (List[Dict[str, str]]): Transformed rows about to be written
+        input_file (str): Source file, used to name the problem in the message
+        max_listed (int): Cap on how many offending rows to enumerate
+
+    Rows are reported by data-row number with the matching file line beside it
+    (the header occupies the first line), so a number can be typed straight into
+    a spreadsheet without an off-by-one.
+
+    Raises:
+        ValueError: If any row has a blank Date or Amount.
+    """
+    problems = []
+
+    for row_number, monarch_row in enumerate(monarch_transactions, start=1):
+        missing = [field for field in REQUIRED_FIELDS
+                   if not str(monarch_row.get(field, '') or '').strip()]
+        if missing:
+            problems.append((row_number, missing))
+
+    if not problems:
+        return
+
+    listed = '; '.join(
+        f"data row {row_number}, file line {row_number + 1}: no {' and '.join(fields)}"
+        for row_number, fields in problems[:max_listed]
+    )
+    hidden = f" (and {len(problems) - max_listed} more)" if len(problems) > max_listed else ''
+
+    raise ValueError(
+        f"{os.path.basename(input_file)}: {len(problems)} of {len(monarch_transactions)} rows "
+        f"have no {' or '.join(REQUIRED_FIELDS)} value, and Monarch silently skips rows like "
+        f"that instead of importing them. Nothing was written. This usually means the export's "
+        f"column headers did not match the expected names "
+        f"({', '.join(CANONICAL_FIELDS)}). Offending rows -> {listed}{hidden}"
+    )
+
+
 def read_pc_transactions(input_file: str) -> Tuple[List[Dict], str]:
     """
     Read and parse Personal Capital CSV file, detecting the format automatically.
@@ -253,25 +394,46 @@ def read_pc_transactions(input_file: str) -> Tuple[List[Dict], str]:
         FileNotFoundError: If the input file doesn't exist
         csv.Error: If the CSV file is malformed
         UnicodeDecodeError: If the file encoding is not UTF-8
+        ValueError: If the file has rows but no Date or Amount column
     """
     transactions = []
     
     try:
-        with open(input_file, 'r', encoding='utf-8') as infile:
+        # utf-8-sig strips a leading UTF-8 BOM. With plain 'utf-8' the BOM glues
+        # itself onto the first header name ('\ufeffDate'), so every Date lookup
+        # below silently returns '' for the whole file. newline='' is what the csv
+        # module requires so that quoted fields may contain embedded line breaks.
+        with open(input_file, 'r', encoding='utf-8-sig', newline='') as infile:
             reader = csv.DictReader(infile)
+            raw_headers = list(reader.fieldnames or [])
+            header_map, _unrecognized = canonicalize_headers(raw_headers)
+            reader.fieldnames = [header_map[name] for name in raw_headers]
+            missing_columns = [field for field in REQUIRED_FIELDS
+                               if field not in (reader.fieldnames or [])]
             
             # Detect the Personal Capital format based on headers
             pc_format = detect_pc_format(reader.fieldnames or [])
             
-            # Read all transactions into memory
+            # Read all transactions into memory, re-keyed onto canonical fields
             for row in reader:
-                transactions.append(row)
+                transactions.append(canonicalize_row(row, header_map))
                 
     except FileNotFoundError:
         raise FileNotFoundError(f"Input file not found: {input_file}")
     except UnicodeDecodeError as e:
         raise UnicodeDecodeError(f"File encoding error in {input_file}: {e}")
     
+    # An empty file is legitimately header-only, so only a file that actually
+    # carries rows is refused for lacking the columns Monarch needs.
+    if missing_columns and transactions:
+        raise ValueError(
+            f"{os.path.basename(input_file)}: no {' or '.join(missing_columns)} column in the "
+            f"export (headers found: {', '.join(raw_headers)}). Refusing to write "
+            f"{len(transactions)} rows whose {' or '.join(missing_columns)} would be blank, "
+            f"because Monarch silently skips such rows. Expected column names: "
+            f"{', '.join(CANONICAL_FIELDS)}."
+        )
+
     return transactions, pc_format
 
 
@@ -422,7 +584,10 @@ def convert_pc_to_monarch(input_file: str, output_file: str, config_path: Option
         mapped_category = monarch_row['Category']
         track_category_remapping(original_category, mapped_category, remapping_counts)
     
-    # Step 4: Write the Monarch CSV file
+    # Step 4: Refuse to write anything Monarch would quietly drop rows from
+    validate_monarch_rows(monarch_transactions, input_file)
+
+    # Step 5: Write the Monarch CSV file
     write_monarch_csv(monarch_transactions, output_file)
     
     return len(monarch_transactions), remapping_counts
@@ -548,6 +713,7 @@ def main() -> None:
     total_transactions = 0  # Track total transactions across all files
     all_remappings = {}     # Accumulate category remapping statistics
     successful_conversions = 0
+    failed_conversions = 0    # Files that produced no output at all
     
     for input_file in pc_files:
         # Generate output filename with -monarch suffix in output directory
@@ -581,9 +747,15 @@ def main() -> None:
             # Log errors but continue processing other files
             print(f"❌ Error processing {input_path.name}: {str(e)}")
             print(f"   Skipping this file and continuing with others...")
+            failed_conversions += 1
     
     # Step 5: Display comprehensive summary report
-    print(f"\n🎉 Migration complete!")
+    failed_conversions = len(pc_files) - successful_conversions
+
+    if failed_conversions:
+        print(f"\n⚠️ Migration finished with problems!")
+    else:
+        print(f"\n🎉 Migration complete!")
     print(f"📊 Results Summary:")
     print(f"  • Files processed successfully: {successful_conversions}/{len(pc_files)}")
     print(f"  • Total transactions converted: {total_transactions:,}")
@@ -616,6 +788,13 @@ def main() -> None:
     
     if all_remappings:
         print(f"\n💡 Tip: Review the category remappings above and adjust in Monarch if needed.")
+
+    # A run that wrote nothing must not look like a run that migrated everything.
+    if failed_conversions:
+        print(f"\n❌ {failed_conversions} of {len(pc_files)} file(s) produced no output. The "
+              f"errors above name the headers each file actually had; nothing was written for "
+              f"them. Exiting non-zero so a scripted migration cannot overlook this.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
